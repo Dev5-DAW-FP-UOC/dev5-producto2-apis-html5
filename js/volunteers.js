@@ -1,10 +1,22 @@
 // js/volunteers.js
 import { datos } from "./datos.js";
+import { getActiveUser } from './storage.js';
 
 const $  = (s, ctx=document) => ctx.querySelector(s);
 const genId = () => "v" + Math.random().toString(36).slice(2) + Date.now().toString(36);
 const todayISO = () => new Date().toISOString().slice(0,10);
 
+function setNavbarUser(name) {
+  let badge = $('#userBadge') || document.querySelector('.navbar-text');
+  if (!badge) {
+    const container = $('#nav') || document.querySelector('.navbar .container, .navbar');
+    badge = document.createElement('span');
+    badge.className = 'navbar-text small text-muted';
+    badge.id = 'userBadge';
+    container?.appendChild(badge);
+  }
+  badge.textContent = name || '-no login-';
+}
 function fmtFecha(iso){
   if(!iso) return "";
   const d = new Date(iso);
@@ -119,6 +131,19 @@ function handleListClick(e){
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Pintar usuario activo
+  const active = getActiveUser();
+  setNavbarUser(active?.nombre);
+
+  // 2) (Opcional) Prefill de email en el formulario de alta
+  const form = document.getElementById('formVol');
+  if (form && active?.email) {
+    const emailInput = form.querySelector('input[name="email"], #email');
+    if (emailInput && !emailInput.value) {
+      emailInput.value = active.email;
+    }
+  }
+
   const fch = $("#fecha");
   if (fch && !fch.value) fch.value = todayISO();
 
