@@ -1,10 +1,9 @@
 // js/login.js
-import { datos } from "./datos.js";
+import * as almacenaje from "./almacenaje.js";
 
 const $ = (s, ctx = document) => ctx.querySelector(s);
 
-function setNavbarUser(name){
-  // Usa el badge si existe; si no, lo crea al vuelo
+function setNavbarUser(name) {
   let badge = $("#userBadge") || document.querySelector(".navbar-text");
   if (!badge) {
     const container = $("#nav") || document.querySelector(".navbar .container, .navbar");
@@ -18,11 +17,19 @@ function setNavbarUser(name){
   badge.textContent = name || "-no login-";
 }
 
+// ✅ Mostrar usuario activo al cargar la página
 document.addEventListener("DOMContentLoaded", () => {
   const form = $("#loginForm");
   const msg  = $("#msg");
+  const usuarioActivo = almacenaje.obtenerUsuarioActivo();
+
+  // Mostrar usuario activo o "-no login-"
+  setNavbarUser(usuarioActivo?.nombre);
+
+  if (!form) return;
   $("#email")?.focus();
 
+  // ✅ Evento de login
   form.addEventListener("submit", (e) => {
     e.preventDefault();
 
@@ -34,30 +41,15 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const user = (datos.usuarios || []).find(u =>
-      u.email === email && u.password === password
-    );
+    const usuario = almacenaje.loguearUsuario(email, password);
 
-    if (!user) {
+    if (!usuario) {
       msg.innerHTML = `<div class="alert alert-danger">Credenciales no válidas.</div>`;
       return;
     }
 
-    // Sesión SOLO en memoria (P1)
-    datos.session = datos.session || {};
-    datos.session.currentUser = {
-      id: user.id,
-      email: user.email,
-      nombre: user.nombre || user.email,
-      rol: user.rol || "usuario",
-    };
-
-    // ✅ Ventanilla nativa 
-    alert("Inicio de sesión exitoso");
-
-    // Pinta el nombre en la navbar de ESTA página
-    setNavbarUser(datos.session.currentUser.nombre);
-    
+    alert(`Inicio de sesión exitoso. Bienvenido/a ${usuario.nombre}`);
+    setNavbarUser(usuario.nombre);
     form.reset();
   });
 });

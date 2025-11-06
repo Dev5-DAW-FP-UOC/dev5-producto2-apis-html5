@@ -5,6 +5,16 @@ export const datos = {
   usuarios: [
     { id: 1, nombre: "Admin Demo", email: "admin@volunet.com", password: "123456", rol: "admin" },
     { id: 2, nombre: "Ana Pérez",  email: "ana@volunet.com",   password: "123456", rol: "user"  },
+    { id: 3, nombre: "María López",    email: "maria.lopez@volunet.com",    password: "123456", rol: "user" },
+    { id: 4, nombre: "Sofía Martínez", email: "sofia.martinez@volunet.com", password: "123456", rol: "user" },
+    { id: 5, nombre: "Daniel Ruiz",    email: "daniel.ruiz@volunet.com",    password: "123456", rol: "user" },
+    { id: 6, nombre: "Laura Gómez",    email: "laura.gomez@volunet.com",    password: "123456", rol: "user" },
+    { id: 7, nombre: "Paula Hernández",email: "paula.hernandez@volunet.com",password: "123456", rol: "user" },
+    { id: 8, nombre: "Javier Morales", email: "javier.morales@volunet.com", password: "123456", rol: "user" },
+    { id: 9, nombre: "Marta Sánchez",  email: "marta.sanchez@volunet.com",  password: "123456", rol: "user" },
+    { id: 10, nombre: "Lucía Fernández",email:"lucia.fernandez@volunet.com",password:"123456", rol: "user" },
+    { id: 11, nombre: "Sergio Pérez",  email: "sergio.perez@volunet.com",   password: "123456", rol: "user" },
+    { id: 12, nombre: "Elena Navarro", email: "elena.navarro@volunet.com",  password: "123456", rol: "user" }
   ],
 
   categorias: ["Todas", "Idiomas", "Deportes", "Profesiones"],
@@ -12,7 +22,7 @@ export const datos = {
   voluntariados: [
     // PETICIONES
     {
-      id: 2001,
+      id: "2001",
       type: "peticion",
       titulo: "Voluntario de Conversación en Inglés",
       autor: "María López",
@@ -22,7 +32,7 @@ export const datos = {
       fecha: "2025-11-25"
     },
     {
-      id: 2002,
+      id: "2002",
       type: "peticion",
       titulo: "Ayuda con Diseño Gráfico Básico",
       autor: "Sofía Martínez",
@@ -32,7 +42,7 @@ export const datos = {
       fecha: "2025-12-10"
     },
     {
-      id: 2003,
+      id: "2003",
       type: "peticion",
       titulo: "Compañero para Entrenamientos de Baloncesto",
       autor: "Daniel Ruiz",
@@ -42,7 +52,7 @@ export const datos = {
       fecha: "2025-11-01"
     },
     {
-      id: 2004,
+      id: "2004",
       type: "peticion",
       titulo: "Clases de Apoyo de Matemáticas (ESO)",
       autor: "Laura Gómez",
@@ -52,7 +62,7 @@ export const datos = {
       fecha: "2025-11-15"
     },
     {
-      id: 2005,
+      id: "2005",
       type: "peticion",
       titulo: "Tutor de Japonés - Nivel Inicial",
       autor: "Paula Hernández",
@@ -64,7 +74,7 @@ export const datos = {
 
     // OFERTAS
     {
-      id: 2006,
+      id: "2006",
       type: "oferta",
       titulo: "Tutorías de Español para Extranjeros",
       autor: "Javier Morales",
@@ -74,7 +84,7 @@ export const datos = {
       fecha: "2025-11-01"
     },
     {
-      id: 2007,
+      id: "2007",
       type: "oferta",
       titulo: "Entrenador de Voleibol Femenino",
       autor: "Marta Sánchez",
@@ -84,7 +94,7 @@ export const datos = {
       fecha: "2025-11-10"
     },
     {
-      id: 2008,
+      id: "2008",
       type: "oferta",
       titulo: "Asesoría de CV y Entrevistas (IT)",
       autor: "Lucía Fernández",
@@ -94,7 +104,7 @@ export const datos = {
       fecha: "2025-11-22"
     },
     {
-      id: 2009,
+      id: "2009",
       type: "oferta",
       titulo: "Clases de Natación para Principiantes",
       autor: "Sergio Pérez",
@@ -104,7 +114,7 @@ export const datos = {
       fecha: "2025-12-05"
     },
     {
-      id: 2010,
+      id: "2010",
       type: "oferta",
       titulo: "Traducción Simple (Francés-Español)",
       autor: "Elena Navarro",

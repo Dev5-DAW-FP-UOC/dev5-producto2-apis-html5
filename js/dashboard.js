@@ -1,5 +1,6 @@
 // js/dashboard.js
 import { datos } from "./datos.js";
+import { verificarSesion, mostrarUsuarioActivo, configurarCierreSesion } from "./auth.js";
 
 // Estado del dashboard
 const STATE = {
@@ -175,6 +176,15 @@ function draw() {
 
 // Init
 document.addEventListener("DOMContentLoaded", () => {
+  const usuario = verificarSesion(); // 🔒 redirige si no hay sesión
+  if (!usuario) return; // si no hay usuario, no continúa
+
+  mostrarUsuarioActivo(); // muestra el nombre/email
+  configurarCierreSesion(); // permite cerrar sesión
+
+  // ❌ elimina o comenta esta línea:
+  // initDashboard(); // ejecuta tu dashboard normal
+  
   const app = $("#app");
   renderLayout(app);
 

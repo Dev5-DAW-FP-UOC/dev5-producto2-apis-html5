@@ -99,12 +99,19 @@
         <div id="list" class="vstack gap-3"><!-- items dinámicos --></div>
       </section>
     </main>
+     <!-- Panel: Gráficos -->
+       <section class="panel p-compact mt-4 text-center">
+          <h5 class="section-title mb-3">Gráficos</h5>
+          <canvas id="chartVoluntariado" width="800" height="300"></canvas>
+        </section>
 
     <footer class="border-top py-3 small text-center text-muted">
       © 2025 Volunet · Proyecto educativo
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="./js/almacenaje.js"></script>
+    <script type="module" src="./js/auth.js"></script>
     <script type="module" src="./js/volunteers.js?v=4"></script>
   </body>
 </html>

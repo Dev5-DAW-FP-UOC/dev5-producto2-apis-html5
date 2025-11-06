@@ -1,4 +1,5 @@
 // js/users.js
+import * as almacenaje from "./almacenaje.js";
 import { datos } from "./datos.js";
 
 const $ = (s, ctx = document) => ctx.querySelector(s);
@@ -14,22 +15,30 @@ function showMsg(text, type="info"){
     </div>`;
 }
 
+// --- Cargar usuarios desde LocalStorage ---
+function cargarUsuarios() {
+  let usuarios = almacenaje.obtenerDeLocalStorage("usuarios") || [];
+
+  // asegurar que cada usuario tenga id como string
+  usuarios.forEach(u => { u.id = String(u.id ?? genId()); });
+
+  return usuarios;
+}
+
+function guardarUsuarios(arr){
+  almacenaje.guardarEnLocalStorage("usuarios", arr);
+}
+
+// --- Dibujar tabla ---
 function drawTable(){
   const tbody = $("#tablaUsers tbody");
-  const arr = datos.usuarios || [];
+  const usuarios = cargarUsuarios();
 
-  if (!arr.length){
+  if (!usuarios.length){
     tbody.innerHTML = `<tr><td colspan="3" class="text-muted">No hay usuarios.</td></tr>`;
     return;
   }
 
-  // asegurar ID como string (para que eliminar funcione en todos los casos)
-  arr.forEach(u => {
-    if (u.id == null) u.id = genId();
-    u.id = String(u.id);
-  });
-
-  // botón papelera (SVG inline)
   const trashBtn = `
     <button class="btn-icon" data-action="del" title="Eliminar" aria-label="Eliminar">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -41,27 +50,27 @@ function drawTable(){
     </button>
   `;
 
-  tbody.innerHTML = arr.map(u => `
+  tbody.innerHTML = usuarios.map(u => `
     <tr data-id="${u.id}">
       <td>${u.nombre || "-"}</td>
       <td>${u.email}</td>
-      <td class="text-end">
-        ${trashBtn}
-      </td>
+      <td class="text-end">${trashBtn}</td>
     </tr>
   `).join("");
 }
 
+// --- Crear nuevo usuario ---
 function handleSubmit(e){
   e.preventDefault();
   const f = e.currentTarget;
+  const usuarios = cargarUsuarios();
 
   const nuevo = {
     id: genId(),
     nombre:   f.nombre.value.trim(),
     email:    f.email.value.trim(),
     password: f.password.value,
-    rol: "usuario",
+    rol: "user",
   };
 
   if (!nuevo.nombre || !nuevo.email || !nuevo.password || nuevo.password.length < 6){
@@ -69,36 +78,36 @@ function handleSubmit(e){
     return;
   }
 
-  if (!Array.isArray(datos.usuarios)) datos.usuarios = [];
-  if (datos.usuarios.some(u => u.email === nuevo.email)){
+  if (usuarios.some(u => u.email === nuevo.email)){
     showMsg("Ese email ya existe.", "warning");
     return;
   }
 
-  datos.usuarios.push(nuevo);
+  usuarios.push(nuevo);
+  guardarUsuarios(usuarios);
   drawTable();
   f.reset();
-  showMsg("Usuario añadido (memoria).", "success");
+  showMsg("Usuario añadido correctamente.", "success");
 }
 
+// --- Eliminar usuario ---
 function handleTableClick(e){
   const btn = e.target.closest("[data-action='del']");
   if (!btn) return;
 
   const tr = btn.closest("tr");
-  const id = tr?.dataset.id; // string
+  const id = tr?.dataset.id;
   if (!id) return;
 
-  const idx = datos.usuarios.findIndex(u => String(u.id) === id);
-  if (idx !== -1){
-    datos.usuarios.splice(idx, 1);  // eliminar en memoria
-    drawTable();
-    showMsg("Usuario eliminado.", "warning");
-  }
+  let usuarios = cargarUsuarios();
+  usuarios = usuarios.filter(u => String(u.id) !== id);
+  guardarUsuarios(usuarios);
+  drawTable();
+  showMsg("Usuario eliminado.", "warning");
 }
 
+// --- Init ---
 document.addEventListener("DOMContentLoaded", () => {
-  if (!Array.isArray(datos.usuarios)) datos.usuarios = [];
   drawTable();
   $("#formUser")?.addEventListener("submit", handleSubmit);
   $("#tablaUsers")?.addEventListener("click", handleTableClick);
