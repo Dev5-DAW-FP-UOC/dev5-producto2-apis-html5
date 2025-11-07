@@ -180,6 +180,9 @@ async function handleSubmit(e) {
   e.preventDefault();
   const f = e.currentTarget;
 
+  // 🔧 añade esta línea:
+  const active = getActiveUser();
+
   const nuevo = {
     // id: (NO poner, lo genera IndexedDB)
     titulo: (f.titulo?.value || "").trim(),
@@ -189,7 +192,7 @@ async function handleSubmit(e) {
     descripcion: (f.descripcion?.value || "").trim(),
     resumen: (f.descripcion?.value || "").trim(),
     fecha: f.fecha?.value || todayISO(),
-    creadoPor: active?.nombre || "Anónimo",
+    creadoPor: active?.nombre || "Anónimo", // ← ahora sí existe 'active'
   };
 
   if (!nuevo.titulo || !nuevo.descripcion) {
@@ -197,7 +200,14 @@ async function handleSubmit(e) {
     return;
   }
 
-  await dbPut(nuevo);
+  try {
+    await dbPut(nuevo);
+  } catch (err) {
+    console.error("IndexedDB put failed:", err);
+    alert("No se pudo guardar el voluntariado (ver consola).");
+    return;
+  }
+
   await loadFromDB(); // refresca state.vols
   drawList();
 
