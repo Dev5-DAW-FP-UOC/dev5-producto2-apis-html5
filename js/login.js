@@ -1,63 +1,58 @@
 // js/login.js
-import { datos } from "./datos.js";
+import { login, getActiveUser } from './storage.js';
 
 const $ = (s, ctx = document) => ctx.querySelector(s);
 
-function setNavbarUser(name){
-  // Usa el badge si existe; si no, lo crea al vuelo
-  let badge = $("#userBadge") || document.querySelector(".navbar-text");
-  if (!badge) {
-    const container = $("#nav") || document.querySelector(".navbar .container, .navbar");
-    badge = document.createElement("span");
-    badge.className = "navbar-text small text-muted";
-    badge.id = "userBadge";
-    badge.textContent = name || "-no login-";
-    container?.appendChild(badge);
-    return;
-  }
-  badge.textContent = name || "-no login-";
+function showMsg(text, type = 'info') {
+  const box = $('#msg');
+  if (!box) return;
+  box.innerHTML = `
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      ${text}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>`;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const form = $("#loginForm");
-  const msg  = $("#msg");
-  $("#email")?.focus();
+function setNavbarUser(name) {
+  let badge = $('#userBadge') || document.querySelector('.navbar-text');
+  if (!badge) {
+    const container = $('#nav') || document.querySelector('.navbar .container, .navbar');
+    badge = document.createElement('span');
+    badge.className = 'navbar-text small text-muted';
+    badge.id = 'userBadge';
+    container?.appendChild(badge);
+  }
+  badge.textContent = name || '-no login-';
+}
 
-  form.addEventListener("submit", (e) => {
+document.addEventListener('DOMContentLoaded', () => {
+  // Pintar usuario activo si existe
+  const active = getActiveUser();
+  setNavbarUser(active?.nombre);
+
+  const form = $('#loginForm');
+  if (!form) return;
+
+  document.getElementById('email')?.focus();
+
+  form.addEventListener('submit', (e) => {
     e.preventDefault();
-
     const email = form.email.value.trim();
-    const password = form.password.value.trim();
+    const password = form.password.value;
 
     if (!email || !password) {
-      msg.innerHTML = `<div class="alert alert-danger">Introduce email y contraseña.</div>`;
+      showMsg('Completa email y contraseña', 'warning');
       return;
     }
 
-    const user = (datos.usuarios || []).find(u =>
-      u.email === email && u.password === password
-    );
-
-    if (!user) {
-      msg.innerHTML = `<div class="alert alert-danger">Credenciales no válidas.</div>`;
-      return;
+    try {
+      const user = login(email, password);
+      setNavbarUser(user.nombre);
+      showMsg('Inicio de sesión exitoso', 'success');
+      alert('Inicio de sesión exitoso');
+      form.reset();
+    } catch (err) {
+      showMsg(err.message || 'Email o contraseña incorrectos', 'danger');
     }
-
-    // Sesión SOLO en memoria (P1)
-    datos.session = datos.session || {};
-    datos.session.currentUser = {
-      id: user.id,
-      email: user.email,
-      nombre: user.nombre || user.email,
-      rol: user.rol || "usuario",
-    };
-
-    // ✅ Ventanilla nativa 
-    alert("Inicio de sesión exitoso");
-
-    // Pinta el nombre en la navbar de ESTA página
-    setNavbarUser(datos.session.currentUser.nombre);
-    
-    form.reset();
   });
 });

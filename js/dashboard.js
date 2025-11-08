@@ -1,5 +1,6 @@
 // js/dashboard.js
 import { datos } from "./datos.js";
+import { getActiveUser } from './storage.js';
 
 // Estado del dashboard
 const STATE = {
@@ -11,6 +12,18 @@ const STATE = {
 
 // Atajos simples
 const $ = (sel, ctx = document) => ctx.querySelector(sel);
+
+function setNavbarUser(name) {
+  let badge = $('#userBadge') || document.querySelector('.navbar-text');
+  if (!badge) {
+    const container = $('#nav') || document.querySelector('.navbar .container, .navbar');
+    badge = document.createElement('span');
+    badge.className = 'navbar-text small text-muted';
+    badge.id = 'userBadge';
+    container?.appendChild(badge);
+  }
+  badge.textContent = name || '-no login-';
+}
 
 // Formatea "YYYY-MM-DD" a "dd/mm/yyyy"
 function fmtFecha(iso) {
@@ -175,6 +188,9 @@ function draw() {
 
 // Init
 document.addEventListener("DOMContentLoaded", () => {
+  const active = getActiveUser();
+  setNavbarUser(active?.nombre);
+  
   const app = $("#app");
   renderLayout(app);
 
