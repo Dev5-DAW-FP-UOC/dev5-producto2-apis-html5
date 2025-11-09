@@ -1,81 +1,115 @@
-import { obtenerUsuarioActivo, handleLogout, getVoluntariados } from './almacenaje.js';
+// js/dashboard.js (Actualizado a P2)
+import { init, getVoluntariados } from './almacenaje.js';
+import { checkLogin, updateNavbar } from './auth.js';
+import { datos } from './datos.js'; 
 
-function setNavbarUser(user) {
-    const badge = document.getElementById('userBadge');
-    if (!badge) return;
+let allVoluntariados = []; 
 
-    const loginLink = document.querySelector('a[href="./login.html"]');
+document.addEventListener('DOMContentLoaded', () => {
+    init(); 
     
-    if (user) {
-        badge.textContent = user.nombre || user.email;
-        if (loginLink) {
-            loginLink.textContent = 'Cerrar Sesión';
-            loginLink.href = '#';
-            loginLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                handleLogout();
-                window.location.href = 'login.html';
-            });
-        }
-    } else {
-        badge.textContent = '-no login-';
-        if (loginLink) {
-            loginLink.textContent = 'Login';
-            loginLink.href = './login.html';
-        }
-    }
-}
+    const usuario = checkLogin(); 
+    if (!usuario) return; 
 
-async function renderDashboard() {
-    const appContainer = document.getElementById('app');
-    if (!appContainer) return;
+    updateNavbar(); 
+    renderLayoutAndCards(); 
+});
 
-    const voluntariados = await getVoluntariados();
-    
-    let cardsHTML = '';
-    if (voluntariados && voluntariados.length > 0) {
-        cardsHTML = voluntariados.map(item => {
-            const badgeClass = item.tipo === 'oferta' ? 'text-bg-success' : 'text-bg-primary';
-            
-            return `
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 shadow-sm rounded-4">
-                    <div class="card-body">
-                        <span class="badge ${badgeClass} mb-2">${item.tipo}</span>
-                        <h5 class="card-title">${item.titulo}</h5>
-                        <p class="card-text text-muted small">${item.categoria}</p>
-                        <p class="card-text">${item.descripcion}</p>
-                    </div>
-                    <div class="card-footer bg-white border-top-0 text-muted small">
-                        Contacto: ${item.email}
-                        <br>
-                        Fecha: ${item.fecha}
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
-    } else {
-        cardsHTML = '<p class="text-muted">No hay voluntariados disponibles.</p>';
-    }
+async function renderLayoutAndCards() {
+    const app = document.getElementById('app');
+    if (!app) return;
 
-    appContainer.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center mb-3">
-             <h1 class="h3 mb-0">Dashboard</h1>
+    const filterButtonsHTML = datos.categorias.map(cat => 
+        `<button class="btn btn-sm ${cat === 'Todas' ? 'btn-primary' : 'btn-outline-secondary'}" data-categoria="${cat}">${cat}</button>`
+    ).join('');
+
+    app.innerHTML = `
+        <h1 class="h3 mb-4">Dashboard de Voluntariado</h1>
+        
+        <div class="mb-3">
+            <input type="search" id="searchBar" class="form-control" placeholder="Buscar por título, descripción...">
         </div>
-        <div class="row">
-            ${cardsHTML}
+        
+        <div class="d-flex flex-wrap gap-2 mb-4" id="filterContainer">
+            ${filterButtonsHTML}
+        </div>
+        
+        <div class="row" id="card-container">
+            <p>Cargando voluntariados...</p>
+        </div>
+
+        <div id="drop-zone-container" class="mt-5">
+            <h2 class="h4">Mi Selección (Drag & Drop)</h2>
+            <div id="drop-zone" class="p-4 bg-white border-dashed rounded mt-3" style="--bs-border-style: dashed; min-height: 150px;">
+                 <p class="text-center text-muted" id="drop-zone-placeholder">Arrastra aquí tus voluntariados seleccionados</p>
+            </div>
         </div>
     `;
+
+    allVoluntariados = await getVoluntariados();
+    
+    renderCards(allVoluntariados);
+
+    document.getElementById('searchBar').addEventListener('input', handleFilter);
+    document.getElementById('filterContainer').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            document.querySelectorAll('#filterContainer button').forEach(btn => btn.classList.remove('btn-primary', 'btn-outline-secondary'));
+            document.querySelectorAll('#filterContainer button').forEach(btn => {
+                if (btn === e.target) {
+                    btn.classList.add('btn-primary');
+                } else {
+                    btn.classList.add('btn-outline-secondary');
+                }
+            });
+            handleFilter();
+        }
+    });
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const user = obtenerUsuarioActivo();
-    if (!user) {
-        window.location.href = 'login.html';
+function renderCards(voluntariados) {
+    const container = document.getElementById('card-container');
+    if (!container) return;
+
+    if (voluntariados.length === 0) {
+        container.innerHTML = '<p class="text-muted">No se han encontrado voluntariados.</p>';
         return;
     }
 
-    setNavbarUser(user);
+    container.innerHTML = voluntariados.map(item => {
+        const badgeClass = item.tipo === 'oferta' ? 'text-bg-success' : 'text-bg-primary';
+        
+        return `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card shadow-sm h-100" draggable="true" data-id="${item.id}">
+                    <div class="card-header d-flex justify-content-between">
+                        <h5 class="card-title mb-0" style="font-size: 1.1rem;">${item.titulo}</h5>
+                        <span class="badge ${badgeClass} rounded-pill">${item.tipo}</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">${item.descripcion}</p>
+                    </div>
+                    <div class="card-footer text-muted small">
+                        Publicado por: ${item.email}<br>
+                        Categoría: ${item.categoria} · Fecha: ${item.fecha}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
 
-    await renderDashboard();
-});
+function handleFilter() {
+    const searchTerm = document.getElementById('searchBar').value.toLowerCase();
+    const activeCategory = document.querySelector('#filterContainer button.btn-primary')?.dataset.categoria || 'Todas';
+
+    const filtered = allVoluntariados.filter(item => {
+        const matchesSearch = item.titulo.toLowerCase().includes(searchTerm) || 
+                              item.descripcion.toLowerCase().includes(searchTerm);
+        
+        const matchesCategory = (activeCategory === 'Todas') || (item.categoria === activeCategory);
+
+        return matchesSearch && matchesCategory;
+    });
+
+    renderCards(filtered);
+}

@@ -1,37 +1,37 @@
-import { obtenerUsuarioActivo, handleLogout as logoutDesdeAlmacenaje } from './almacenaje.js';
+// js/auth.js
+import { obtenerUsuarioActivo, handleLogout } from './almacenaje.js';
 
 export function checkLogin() {
-    const user = obtenerUsuarioActivo();
-    if (!user) {
+    const usuario = obtenerUsuarioActivo();
+    if (!usuario) {
         window.location.href = 'login.html';
+        return null;
     }
-    return user;
+    return usuario;
 }
 
 export function updateNavbar() {
-    const user = obtenerUsuarioActivo();
-    const badge = document.getElementById('userBadge');
-    if (!badge) return;
-
-    const loginLink = document.querySelector('a[href="./login.html"]');
+    const usuario = obtenerUsuarioActivo();
+    const userBadge = document.getElementById('userBadge');
     
-    if (user) {
-        badge.textContent = user.nombre || user.email;
-        
-        if (loginLink) {
-            loginLink.textContent = 'Cerrar Sesión';
-            loginLink.href = '#';
-            loginLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                logoutDesdeAlmacenaje();
-                window.location.href = 'login.html';
-            });
+    if (userBadge) {
+        if (usuario) {
+            userBadge.textContent = usuario.nombre;
+        } else {
+            userBadge.textContent = '-no login-';
         }
-    } else {
-        badge.textContent = '-no login-';
-        if (loginLink) {
-            loginLink.textContent = 'Login';
-            loginLink.href = './login.html';
-        }
+    }
+
+    const navLinks = document.querySelectorAll('#nav .nav-link');
+    const loginLink = Array.from(navLinks).find(link => link.href.includes('login.html'));
+
+    if (usuario && loginLink) {
+        loginLink.textContent = 'Cerrar Sesión';
+        loginLink.href = '#';
+        loginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleLogout();
+            window.location.href = 'login.html';
+        });
     }
 }
