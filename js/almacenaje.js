@@ -1,18 +1,14 @@
-export function saludar(nombre) {
-  alert(`¡Hola, ${nombre}!`);
-}
+// js/almacenaje.js
 
-// almacenaje.js
-
-import { USUARIOS, VOLUNTARIADOS } from "./datos.js";
+import { datos } from "./datos.js";
 
 /**
  * Inicializa los usuarios en localStorage si no existen todavía y en IndexedDB.
  */
-export async function inicializarUsuarios() {
+export async function inicializarDatos() {
   const usuariosExisten = localStorage.getItem("usuarios");
   if (!usuariosExisten) {
-    localStorage.setItem("usuarios", JSON.stringify(USUARIOS));
+    localStorage.setItem("usuarios", JSON.stringify(datos.usuarios));
     console.log("Usuarios iniciales cargados en localStorage");
   }
 
@@ -26,11 +22,11 @@ export async function inicializarUsuarios() {
         // Si está vacío, agregamos los de ejemplo
         const txAdd = db.transaction("voluntariados", "readwrite");
         const storeAdd = txAdd.objectStore("voluntariados");
-        for (const v of VOLUNTARIADOS) {
+        for (const v of datos.voluntariados) {
           storeAdd.add(v);
         }
         txAdd.oncomplete = () => {
-          console.log("Voluntariados de ejemplo cargados en IndexedDB");
+          console.log("Voluntariados inicales cargados en IndexedDB");
           resolve(true);
         };
         txAdd.onerror = reject;
@@ -40,6 +36,11 @@ export async function inicializarUsuarios() {
     };
     countRequest.onerror = reject;
   });
+}
+
+// Categorías disponibles para filtros, tabs, etc.
+export function getCategorias() {
+  return datos.categorias || ["Todas"];
 }
 
 // === CRUD y autenticación para la app de voluntariado ===
@@ -120,13 +121,13 @@ export function borrarUsuario(email) {
  */
 export function loguearUsuario(email, password) {
   const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-  const usuario = usuarios.find((u) => u.email === email && u.contraseña === password);
+  const usuario = usuarios.find((u) => u.email === email && u.password === password);
   return usuario || null;
 }
 
 /**
- * Guarda el usuario activo en localStorage (por email).
- * @param {string} email
+ * Guarda el usuario activo en localStorage.
+ * @param {string} usuario
  */
 export function guardarUsuarioActivo(email) {
   localStorage.setItem("usuarioActivo", email);
@@ -145,6 +146,20 @@ export function obtenerUsuarioActivo() {
  */
 export function logoutUsuario() {
   localStorage.removeItem("usuarioActivo");
+}
+
+// Devuelve el objeto usuario activo, o null si no hay
+export function getActiveUser() {
+  const email = obtenerUsuarioActivo(); // string o null
+  if (!email) return null;
+
+  const usuarios = listarUsuarios() || []; // del localStorage / datos
+  return usuarios.find((u) => u.email === email) || null;
+}
+
+// (Opcional) helper rápido para comprobar si hay login
+export function isLoggedIn() {
+  return !!getActiveUser();
 }
 
 /**

@@ -1,6 +1,6 @@
 // js/dashboard.js
-import { datos } from "./datos.js";
-import { getActiveUser } from './storage.js';
+
+import { inicializarDatos, listarVoluntariados, getActiveUser, getCategorias } from "./almacenaje.js";
 
 // Estado del dashboard
 const STATE = {
@@ -8,21 +8,22 @@ const STATE = {
   query: "",
   page: 1,
   perPage: 6,
+  voluntariados: [],
 };
 
 // Atajos simples
 const $ = (sel, ctx = document) => ctx.querySelector(sel);
 
 function setNavbarUser(name) {
-  let badge = $('#userBadge') || document.querySelector('.navbar-text');
+  let badge = $("#userBadge") || document.querySelector(".navbar-text");
   if (!badge) {
-    const container = $('#nav') || document.querySelector('.navbar .container, .navbar');
-    badge = document.createElement('span');
-    badge.className = 'navbar-text small text-muted';
-    badge.id = 'userBadge';
+    const container = $("#nav") || document.querySelector(".navbar .container, .navbar");
+    badge = document.createElement("span");
+    badge.className = "navbar-text small text-muted";
+    badge.id = "userBadge";
     container?.appendChild(badge);
   }
-  badge.textContent = name || '-no login-';
+  badge.textContent = name || "-no login-";
 }
 
 // Formatea "YYYY-MM-DD" a "dd/mm/yyyy"
@@ -45,15 +46,18 @@ function paginate(arr, page = 1, perPage = 6) {
 
 // Clase CSS según categoría (colorea la card)
 function categoryClass(cat) {
-  return {
-    Idiomas: "cat-Idiomas",
-    Deportes: "cat-Deportes",
-    Profesiones: "cat-Profesiones",
-  }[cat] || "";
+  return (
+    {
+      Idiomas: "cat-Idiomas",
+      Deportes: "cat-Deportes",
+      Profesiones: "cat-Profesiones",
+    }[cat] || ""
+  );
 }
 
 // Dibuja la estructura base
 function renderLayout(container) {
+  const categorias = getCategorias();
   container.innerHTML = `
     <section class="mb-3">
       <input id="q" class="form-control form-control-lg" placeholder="Buscar por título, texto..." />
@@ -61,9 +65,9 @@ function renderLayout(container) {
 
     <section class="mb-3">
       <div id="tabs" class="d-flex flex-wrap gap-2">
-        ${
-          (datos.categorias || ["Todas","Idiomas","Deportes","Profesiones"])
-            .map(c => `
+        ${(categorias || ["Todas", "Idiomas", "Deportes", "Profesiones"])
+          .map(
+            (c) => `
               <button
                 class="tab-pill tab-${c} ${c === STATE.categoria ? "active" : ""}"
                 data-cat="${c}"
@@ -71,9 +75,9 @@ function renderLayout(container) {
               >
                 ${c}
               </button>
-            `)
-            .join("")
-        }
+            `
+          )
+          .join("")}
       </div>
     </section>
 
@@ -86,13 +90,10 @@ function renderLayout(container) {
   `;
 }
 
-
 // HTML de una tarjeta
 function cardHTML(v) {
   const catCls = categoryClass(v.categoria);
-  const typeBadge = v.type === "oferta"
-    ? `<span class="badge badge-oferta">Oferta</span>`
-    : `<span class="badge badge-peticion">Petición</span>`;
+  const typeBadge = v.type === "oferta" ? `<span class="badge badge-oferta">Oferta</span>` : `<span class="badge badge-peticion">Petición</span>`;
 
   return `
     <div class="col">
@@ -120,15 +121,11 @@ function applyFilters(list) {
   let out = list;
 
   if (STATE.categoria !== "Todas") {
-    out = out.filter(v => v.categoria === STATE.categoria);
+    out = out.filter((v) => v.categoria === STATE.categoria);
   }
   if (STATE.query) {
     const q = STATE.query;
-    out = out.filter(v =>
-      v.titulo.toLowerCase().includes(q) ||
-      (v.resumen || "").toLowerCase().includes(q) ||
-      (v.autor || "").toLowerCase().includes(q)
-    );
+    out = out.filter((v) => v.titulo.toLowerCase().includes(q) || (v.resumen || "").toLowerCase().includes(q) || (v.autor || "").toLowerCase().includes(q));
   }
 
   return [...out].sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
@@ -155,7 +152,7 @@ function buildPager(page, pages) {
 
 // Marca pestaña activa (solo clase, sin estilos inline para que sea más sencillo)
 function paintActiveTab() {
-  document.querySelectorAll("#tabs .tab-pill").forEach(btn => {
+  document.querySelectorAll("#tabs .tab-pill").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.cat === STATE.categoria);
   });
 }
@@ -165,10 +162,13 @@ function draw() {
   const grid = $("#grid");
   const pager = $("#pager");
 
-  const filtered = applyFilters(datos.voluntariados || []);
+  //const filtered = applyFilters(datos.voluntariados || []);
+  const filtered = applyFilters(STATE.voluntariados || []);
   const { items, page, pages } = paginate(filtered, STATE.page, STATE.perPage);
 
-  grid.innerHTML = items.map(cardHTML).join("") || `
+  grid.innerHTML =
+    items.map(cardHTML).join("") ||
+    `
     <div class="col">
       <div class="text-center text-secondary p-5 border rounded">No hay resultados.</div>
     </div>
@@ -188,12 +188,25 @@ function draw() {
 
 // Init
 document.addEventListener("DOMContentLoaded", () => {
+  initDashboard();
+});
+
+async function initDashboard() {
+  // Inicializa datos base (usuarios, etc.)
+  await inicializarDatos();
+
+  // Usuario activo → navbar
   const active = getActiveUser();
   setNavbarUser(active?.nombre);
-  
+
+  // Dibuja la estructura del dashboard
   const app = $("#app");
   renderLayout(app);
 
+  // Carga los voluntariados desde IndexedDB/localStorage (CRUD)
+  STATE.voluntariados = await listarVoluntariados();
+
+  // Listeners de búsqueda y pestañas
   $("#q").addEventListener("input", (e) => {
     STATE.query = e.target.value.trim().toLowerCase();
     STATE.page = 1;
@@ -208,5 +221,6 @@ document.addEventListener("DOMContentLoaded", () => {
     draw();
   });
 
+  // Primer pintado
   draw();
-});
+}
