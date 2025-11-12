@@ -31,7 +31,7 @@ export async function inicializarDatos() {
         };
         txAdd.onerror = reject;
       } else {
-        resolve(false); // Ya había datos, no se carga nada
+        resolve(false);
       }
     };
     countRequest.onerror = reject;
@@ -174,7 +174,10 @@ function abrirDB() {
     request.onupgradeneeded = function (event) {
       const db = event.target.result;
       if (!db.objectStoreNames.contains("voluntariados")) {
-        db.createObjectStore("voluntariados", { keyPath: "id", autoIncrement: true });
+        db.createObjectStore("voluntariados", { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains("seleccionados")) {
+        db.createObjectStore("seleccionados", { keyPath: "id" });
       }
     };
     request.onsuccess = function (event) {
@@ -255,14 +258,16 @@ export async function modificarVoluntariado(id, voluntariadoActualizado) {
 export async function borrarVoluntariado(id) {
   const db = await abrirDB();
   return new Promise((resolve, reject) => {
-    const trasaction = db.transaction("voluntariados", "readwrite");
-    const store = trasaction.objectStore("voluntariados");
-    const request = store.delete(id);
-    request.onsuccess = function (event) {
-      resolve(true);
+    const tx = db.transaction("voluntariados", "readwrite");
+    const store = tx.objectStore("voluntariados");
+    const req = store.delete(Number(id));
+    req.onsuccess = () => {
+      resolve();
+      db.close();
     };
-    request.onerror = function (event) {
-      reject(request.error);
+    req.onerror = (err) => {
+      reject(err);
+      db.close();
     };
   });
 }
@@ -275,4 +280,74 @@ export async function borrarVoluntariado(id) {
 export async function voluntariadosPorUsuario(email) {
   const todosVoluntarioados = await listarVoluntariados();
   return todosVoluntarioados.filter((v) => v.email === email);
+}
+
+/**
+ * ---- Drag & drop (IndexedDB, funciones asíncronas) -----
+ */
+
+/**
+ * Obtiene un voluntariado por ID desde IndexedDB
+ * @param {number|string} id - ID del voluntariado
+ * @returns {Promise<object|null>} Objeto del voluntariado o null si no existe
+ */
+export async function obtenerVoluntariado(id) {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("voluntariados", "readonly");
+    const store = tx.objectStore("voluntariados");
+    const req = store.get(Number(id));
+
+    req.onsuccess = () => {
+      resolve(req.result || null);
+      db.close();
+    };
+    req.onerror = (err) => {
+      reject(err);
+      db.close();
+    };
+  });
+}
+
+/**
+ * Devuelve un array con todos los seleccionados de la base de datos (async).
+ * @returns {Promise<Array>}
+ */
+export async function listarSeleccionados() {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction("seleccionados", "readonly");
+    const store = transaction.objectStore("seleccionados");
+    const request = store.getAll();
+    request.onsuccess = function () {
+      resolve(request.result);
+      db.close();
+    };
+    request.onerror = function () {
+      reject(request.error);
+      db.close();
+    };
+  });
+}
+
+/**
+ * Añade un voluntariado al store 'seleccionados'
+ * @param {object} voluntariado - Objeto del voluntariado a guardar
+ * @returns {Promise<void>}
+ */
+export async function anadirSeleccionado(voluntariado) {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("seleccionados", "readwrite");
+    const store = tx.objectStore("seleccionados");
+    const req = store.add(voluntariado);
+    req.onsuccess = () => {
+      resolve();
+      db.close();
+    };
+    req.onerror = (err) => {
+      reject(err);
+      db.close();
+    };
+  });
 }
