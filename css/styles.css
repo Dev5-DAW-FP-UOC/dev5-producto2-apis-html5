@@ -134,6 +134,28 @@ body { background:#f8fafc; color:#111827; font-family: "Inter", system-ui, -appl
   background:#fff;
 }
 
+/* Drag & Drop */
+#drop-zone {
+    border: 3px dashed var(--ink-muted); 
+    border-radius: 1rem; 
+    padding: 1.5rem;
+    transition: background-color 0.2s, border-color 0.2s;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#drop-zone.drag-over {
+    background-color: var(--tint-idiomas-bg); 
+    border-color: var(--cat-idiomas); 
+}
+
+#drop-zone-placeholder {
+    color: var(--ink-muted); 
+    margin-bottom: 0;
+}
+
 /* ---------- Accesibilidad ---------- */
 :focus-visible{
   outline: 3px solid color-mix(in srgb, var(--cat-idiomas) 60%, #ffffff);
@@ -204,3 +226,39 @@ body.volunteers-bg .panel { background: #eef3ff; }
 #formVol .row { margin-bottom: .25rem; }
 .panel.p-compact { padding: 1.25rem !important; }
 @media (min-width: 768px){ .panel.p-compact { padding: 1.5rem 1.75rem !important; } }
+
+/* panel visual suave */
+.panel {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.04);
+  padding: 16px;
+}
+
+/* altura y scroll del listado (desktop) */
+.scroll-panel {
+  max-height: 520px;   /* ajusta a tu gusto (480-600px) */
+  overflow: auto;
+  padding-right: 4px;
+}
+
+/* canvas compacto como la demo */
+.chart-sm { max-width: 420px; }
+@media (max-width: 991.98px) {
+  .scroll-panel { max-height: none; }   /* en móvil se expande */
+  .chart-sm { max-width: 100%; }
+}
+
+/* CSS para que la zona de seleccionados sea horizontal */
+#drop-zone {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap;
+  gap: 12px !important;
+  padding: 10px;
+  min-height: 80px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
