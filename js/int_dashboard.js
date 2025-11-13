@@ -9,6 +9,7 @@ const STATE = {
   page: 1,
   perPage: 6,
   voluntariados: [],
+  seleccionados: []
 };
 
 // Atajos simples
@@ -87,6 +88,13 @@ function renderLayout(container) {
         <ul id="pager" class="pagination"></ul>
       </nav>
     </section>
+
+    <section class="mt-5">
+      <h3 class="h4 mb-3"> Selección de Voluntariados </h3>
+      <div id="drop-zone" class="border rounded">
+          <p id="drop-zone-placeholder" class="text-center">Arrastra los voluntariados que quieras seleccionar.</p>
+      </div>
+    </section>
   `;
 }
 
@@ -96,7 +104,7 @@ function cardHTML(v) {
   const typeBadge = v.type === "oferta" ? `<span class="badge badge-oferta">Oferta</span>` : `<span class="badge badge-peticion">Petición</span>`;
 
   return `
-    <div class="col">
+    <div class="col" draggable="true">
       <div class="card card-ld ${catCls} h-100">
         <div class="card-body d-flex flex-column">
           <div class="d-flex justify-content-between small mb-1">
@@ -186,6 +194,40 @@ function draw() {
   paintActiveTab();
 }
 
+
+// Función para pintar las tarjetas en la zona de soltar
+function renderSeleccionados() {
+  const dropZone = $("#drop-zone");
+  const placeholder = $("#drop-zone-placeholder");
+  
+  // Limpia solo las tarjetas seleccionadas anteriores, no el placeholder
+  dropZone.querySelectorAll('.card-selected-item').forEach(card => card.remove());
+
+  if (STATE.seleccionados.length === 0) {
+    placeholder.style.display = 'block';
+    return;
+  }
+
+  placeholder.style.display = 'none';
+
+  const seleccionadosHTML = STATE.seleccionados.map(id => {
+    const voluntariado = STATE.voluntariados.find(v => v.id === id);
+    if (!voluntariado) return '';
+        const catCls = categoryClass(voluntariado.categoria);
+    // Usamos una versión "simplificada" de la tarjeta para la zona de selección
+    return `
+      <div class="card card-selected-item card-ld ${catCls} p-2 shadow-sm" data-id-seleccionado="${id}">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="fw-bold small px-2">${voluntariado.titulo}</span>
+          <button type="button" class="btn-close small" data-id-quitar="${id}" aria-label="Quitar"></button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  dropZone.insertAdjacentHTML('beforeend', seleccionadosHTML);
+}
+
 // Init
 document.addEventListener("DOMContentLoaded", () => {
   initDashboard();
@@ -221,6 +263,79 @@ async function initDashboard() {
     draw();
   });
 
+    // Listeners de Drag & Drop
+  addDragAndDropListeners();
+
   // Primer pintado
   draw();
+  // Segundo pintado
+  renderSeleccionados();
+}
+
+function addDragAndDropListeners() {
+    const dropZone = $("#drop-zone");
+    const grid = $("#grid");
+
+    // 1. Dónde se puede soltar
+    dropZone.addEventListener("dragover", handleDragOver);
+    dropZone.addEventListener("dragleave", handleDragLeave);
+    dropZone.addEventListener("drop", handleDrop);
+    
+    // 2. Qué se está arrastrando (delegación de eventos)
+    grid.addEventListener("dragstart", handleDragStart);
+    
+    // 3. Quitar de la selección (delegación de eventos)
+    dropZone.addEventListener("click", (e) => {
+        const quitartBtn = e.target.closest('[data-id-quitar]');
+        if (quitartBtn) {
+            const id = Number(quitartBtn.dataset.idQuitar);
+            
+            // Quita del array de seleccionados
+            STATE.seleccionados = STATE.seleccionados.filter(selId => selId !== id);
+            
+            // Vuelve a pintar ambas zonas
+            draw(); // Pinta las tarjetas disponibles (la tarjeta volverá a aparecer)
+            renderSeleccionados(); // Pinta la zona de selección
+        }
+    });
+}
+
+function handleDragStart(e) {
+    // Guarda el ID de la tarjeta que estás arrastrando
+    const card = e.target.closest('[data-id]');
+    if (card) {
+        e.dataTransfer.setData("text/plain", card.dataset.id);
+        e.dataTransfer.effectAllowed = "move";
+    }
+}
+
+function handleDragOver(e) {
+    e.preventDefault(); // ¡Obligatorio! Permite que se pueda "soltar"
+    const dropZone = $("#drop-zone");
+    dropZone.classList.add("drag-over"); // Enciende la "bombilla" (el CSS)
+    e.dataTransfer.dropEffect = "move";
+}
+
+function handleDragLeave(e) {
+    const dropZone = $("#drop-zone");
+    dropZone.classList.remove("drag-over"); // Apaga la "bombilla" (el CSS)
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const dropZone = $("#drop-zone");
+    dropZone.classList.remove("drag-over"); // Apaga la "bombilla"
+
+    // Obtiene el ID que guardamos en handleDragStart
+    const id = Number(e.dataTransfer.getData("text/plain"));
+    if (!id) return;
+    
+    // Añade el ID al array de seleccionados (si no estaba ya)
+    if (!STATE.seleccionados.includes(id)) {
+        STATE.seleccionados.push(id);
+        
+        // Vuelve a pintar las dos zonas para que se actualicen
+        draw(); // Vuelve a pintar la rejilla (la tarjeta arrastrada desaparecerá)
+        renderSeleccionados(); // Pinta la zona de selección (la tarjeta aparecerá aquí)
+    }
 }
