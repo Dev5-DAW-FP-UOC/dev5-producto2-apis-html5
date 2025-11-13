@@ -1,6 +1,6 @@
 // js/dashboard.js
 
-import { inicializarDatos, listarVoluntariados, getActiveUser, getCategorias } from "./almacenaje.js";
+import { inicializarDatos, listarVoluntariados, getActiveUser, getCategorias, listarSeleccionados, guardarSeleccionados, borrarSeleccionados } from "./almacenaje.js";
 
 // Estado del dashboard
 const STATE = {
@@ -91,7 +91,7 @@ function renderLayout(container) {
 
     <section class="mt-5">
       <h3 class="h4 mb-3"> Selección de Voluntariados </h3>
-      <div id="drop-zone" class="border rounded">
+      <div id="drop-zone" class="border border-2 border-primary-subtle rounded-4">
           <p id="drop-zone-placeholder" class="text-center">Arrastra los voluntariados que quieras seleccionar.</p>
       </div>
     </section>
@@ -104,7 +104,7 @@ function cardHTML(v) {
   const typeBadge = v.type === "oferta" ? `<span class="badge badge-oferta">Oferta</span>` : `<span class="badge badge-peticion">Petición</span>`;
 
   return `
-    <div class="col" draggable="true">
+    <div class="col" draggable="true" data-id="${v.id}">
       <div class="card card-ld ${catCls} h-100">
         <div class="card-body d-flex flex-column">
           <div class="d-flex justify-content-between small mb-1">
@@ -170,8 +170,9 @@ function draw() {
   const grid = $("#grid");
   const pager = $("#pager");
 
-  //const filtered = applyFilters(datos.voluntariados || []);
-  const filtered = applyFilters(STATE.voluntariados || []);
+  const voluntariadosNoSeleccionados = STATE.voluntariados.filter((v) => !STATE.seleccionados.includes(v.id));
+
+  const filtered = applyFilters(voluntariadosNoSeleccionados || []);
   const { items, page, pages } = paginate(filtered, STATE.page, STATE.perPage);
 
   grid.innerHTML =
@@ -248,6 +249,12 @@ async function initDashboard() {
   // Carga los voluntariados desde IndexedDB/localStorage (CRUD)
   STATE.voluntariados = await listarVoluntariados();
 
+  //Carga los voluntariados seleccionados
+  const seleccionadosObjetos = await listarSeleccionados();
+  
+  // MODIFICACIÓN CLAVE: Convertimos los objetos en un array de IDs para el STATE
+  STATE.seleccionados = seleccionadosObjetos.map(v => v.id);
+
   // Listeners de búsqueda y pestañas
   $("#q").addEventListener("input", (e) => {
     STATE.query = e.target.value.trim().toLowerCase();
@@ -285,18 +292,22 @@ function addDragAndDropListeners() {
     grid.addEventListener("dragstart", handleDragStart);
     
     // 3. Quitar de la selección (delegación de eventos)
-    dropZone.addEventListener("click", (e) => {
+    dropZone.addEventListener("click", async (e) => {
         const quitartBtn = e.target.closest('[data-id-quitar]');
-        if (quitartBtn) {
-            const id = Number(quitartBtn.dataset.idQuitar);
-            
-            // Quita del array de seleccionados
-            STATE.seleccionados = STATE.seleccionados.filter(selId => selId !== id);
-            
-            // Vuelve a pintar ambas zonas
-            draw(); // Pinta las tarjetas disponibles (la tarjeta volverá a aparecer)
-            renderSeleccionados(); // Pinta la zona de selección
+        if (!quitartBtn) return;
+
+        const id = Number(quitartBtn.dataset.idQuitar);
+        
+        try {
+            await borrarSeleccionados(id);
+        } catch (err) {
+            console.error("[dashboard] error eliminando en IndexedDB", err);
         }
+        
+        STATE.seleccionados = STATE.seleccionados.filter(selId => selId !== id);
+        
+        draw();
+        renderSeleccionados();
     });
 }
 
@@ -334,6 +345,11 @@ function handleDrop(e) {
     if (!STATE.seleccionados.includes(id)) {
         STATE.seleccionados.push(id);
         
+        const voluntariado = STATE.voluntariados.find(v => v.id === id);
+        if(voluntariado){
+          guardarSeleccionados({...voluntariado, id: Number(voluntariado.id)});
+        }
+
         // Vuelve a pintar las dos zonas para que se actualicen
         draw(); // Vuelve a pintar la rejilla (la tarjeta arrastrada desaparecerá)
         renderSeleccionados(); // Pinta la zona de selección (la tarjeta aparecerá aquí)

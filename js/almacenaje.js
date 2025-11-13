@@ -176,6 +176,11 @@ function abrirDB() {
       if (!db.objectStoreNames.contains("voluntariados")) {
         db.createObjectStore("voluntariados", { keyPath: "id", autoIncrement: true });
       }
+
+      //almacenaje de voluntariados seleccionados
+      if(!db.objectStoreNames.contains("seleccionados")) {
+        db.createObjectStore("seleccionados", { keyPath: "id", autoIncrement: true });
+      }
     };
     request.onsuccess = function (event) {
       resolve(event.target.result);
@@ -275,4 +280,52 @@ export async function borrarVoluntariado(id) {
 export async function voluntariadosPorUsuario(email) {
   const todosVoluntarioados = await listarVoluntariados();
   return todosVoluntarioados.filter((v) => v.email === email);
+}
+
+//guardar voluntariados seleccionados
+export async function guardarSeleccionados(voluntariado) {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("seleccionados", "readwrite");
+    const store = tx.objectStore("seleccionados");
+    const request = store.add(voluntariado);
+    request.onsuccess = function (event) {
+      resolve(event.target.result);
+    };
+    request.onerror = function (event) {
+      reject(request.result);
+    };
+  });
+}
+
+//listar voluntariados seleccionados
+export async function listarSeleccionados() {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction("seleccionados", "readonly");
+    const store = transaction.objectStore("seleccionados");
+    const request = store.getAll();
+    request.onsuccess = function (event) {
+      resolve(request.result);
+    };
+    request.onerror = function (event) {
+      reject(request.error);
+    };
+  });
+}
+
+//borrar voluntariados seleccionados
+export async function borrarSeleccionados(id) {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const trasaction = db.transaction("seleccionados", "readwrite");
+    const store = trasaction.objectStore("seleccionados");
+    const request = store.delete(id);
+    request.onsuccess = function (event) {
+      resolve(true);
+    };
+    request.onerror = function (event) {
+      reject(request.error);
+    };
+  });
 }

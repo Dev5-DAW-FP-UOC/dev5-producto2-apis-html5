@@ -134,6 +134,25 @@ body { background:#f8fafc; color:#111827; font-family: "Inter", system-ui, -appl
   background:#fff;
 }
 
+#drop-zone {
+    padding: 1.5rem;
+    transition: background-color 0.2s, border-color 0.2s;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#drop-zone.drag-over {
+    background-color: var(--tint-idiomas-bg); 
+    border-color: var(--cat-idiomas); 
+}
+
+#drop-zone-placeholder {
+    color: var(--ink-muted); 
+    margin-bottom: 0;
+}
+
 /* ---------- Accesibilidad ---------- */
 :focus-visible{
   outline: 3px solid color-mix(in srgb, var(--cat-idiomas) 60%, #ffffff);
