@@ -1,5 +1,5 @@
 // js/users.js
-import { inicializarDatos, altaUsuario, listarUsuarios, borrarUsuario, getActiveUser } from "./almacenaje.js";
+import { inicializarDatos, altaUsuario, listarUsuarios, borrarUsuario, getActiveUser, logoutUsuario } from "./almacenaje.js";
 const $ = (s, ctx = document) => ctx.querySelector(s);
 
 function showMsg(text, type = "info") {
@@ -55,7 +55,17 @@ function wireTableActions() {
     const id = btn.getAttribute("data-email");
     const ok = confirm("¿Seguro que quieres borrar este usuario?");
     if (!ok) return;
+
+    const activeUser = getActiveUser();
+    const isActiveUser = activeUser && activeUser.email === id;
+
     borrarUsuario(id);
+
+    if(isActiveUser){
+      logoutUsuario();
+      setNavbarUser(null);
+    }
+
     drawTable();
     showMsg("Usuario eliminado", "success");
   });
