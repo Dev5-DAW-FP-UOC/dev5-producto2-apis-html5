@@ -1,6 +1,6 @@
 // js/dashboard.js
 
-import { inicializarDatos, listarVoluntariados, getActiveUser, getCategorias, obtenerVoluntariado, borrarVoluntariado, anadirSeleccionado, listarSeleccionados } from "./almacenaje.js";
+import { inicializarDatos, listarVoluntariados, getActiveUser, getCategorias, obtenerVoluntariado, borrarVoluntariado, anadirSeleccionado, listarSeleccionados, obtenerSeleccionado, borrarSeleccionado, altaVoluntariado } from "./almacenaje.js";
 
 // Estado del dashboard
 const STATE = {
@@ -218,26 +218,48 @@ async function pintarSeleccionados() {
   }
 }
 
-function setupDropzone() {
-  const dropzone = document.getElementById("zona-seleccionados");
-  if (!dropzone) return;
-  dropzone.addEventListener("dragover", (e) => e.preventDefault());
-  dropzone.addEventListener("drop", handleDrop);
+function setupDropzones() {
+  const dropSeleccionados = document.getElementById("zona-seleccionados");
+  const dropGrid = document.getElementById("grid");
+
+  if (dropSeleccionados) {
+    dropSeleccionados.addEventListener("dragover", (e) => e.preventDefault());
+    dropSeleccionados.addEventListener("drop", (e) => handleDrop(e, "seleccionados"));
+  }
+  if (dropGrid) {
+    dropGrid.addEventListener("dragover", (e) => e.preventDefault());
+    dropGrid.addEventListener("drop", (e) => handleDrop(e, "grid"));
+  }
 }
 
 function handleDragStart(e) {
   const card = e.target.closest(".card");
   if (!card) return;
   const id = card.dataset.id;
+  const origen = card.closest("#zona-seleccionados") ? "seleccionados" : "grid";
   e.dataTransfer.setData("text/plain", id);
+  e.dataTransfer.setData("from", origen);
 }
 
-async function handleDrop(e) {
+async function handleDrop(e, destino) {
   e.preventDefault();
   const id = e.dataTransfer.getData("text/plain");
-  console.log("DROP! id: ", id);
-  moverATarjetaSeleccionada(id);
+  const origen = e.dataTransfer.getData("from");
+
+  // Si se suelta en la misma zona, no hacer nada
+  if (origen === destino) return;
+
+  if (origen === "grid" && destino === "seleccionados") {
+    // Mover de voluntariados a seleccionados (ya implementado)
+    await moverATarjetaSeleccionada(id);
+  } else if (origen === "seleccionados" && destino === "grid") {
+    // Mover de seleccionados a voluntariados (NUEVO)
+    await moverAListaGeneral(id);
+  }
+
   await pintarSeleccionados();
+  STATE.voluntariados = await listarVoluntariados();
+  draw();
 }
 
 async function moverATarjetaSeleccionada(id) {
@@ -276,6 +298,19 @@ async function moverATarjetaSeleccionada(id) {
   }
 }
 
+async function moverAListaGeneral(id) {
+  // 1. Obtener el seleccionado
+  const voluntariado = await obtenerSeleccionado(id);
+  if (!voluntariado) {
+    console.warn("Seleccionado no encontrado en la DB:", id);
+    return;
+  }
+  // 2. Borrar de seleccionados
+  await borrarSeleccionado(id);
+  // 3. Añadir a voluntariados
+  await altaVoluntariado(voluntariado);
+}
+
 // Init
 document.addEventListener("DOMContentLoaded", () => {
   initDashboard();
@@ -295,7 +330,7 @@ async function initDashboard() {
 
   pintarSeleccionados();
 
-  setupDropzone();
+  setupDropzones();
 
   // Carga los voluntariados desde IndexedDB/localStorage (CRUD)
   STATE.voluntariados = await listarVoluntariados();

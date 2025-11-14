@@ -351,3 +351,39 @@ export async function anadirSeleccionado(voluntariado) {
     };
   });
 }
+
+// Obtener seleccionado
+export async function obtenerSeleccionado(id) {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("seleccionados", "readonly");
+    const store = tx.objectStore("seleccionados");
+    const req = store.get(Number(id));
+    req.onsuccess = () => {
+      resolve(req.result || null);
+      db.close();
+    };
+    req.onerror = (err) => {
+      reject(err);
+      db.close();
+    };
+  });
+}
+
+// Borrar seleccionado
+export async function borrarSeleccionado(id) {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("seleccionados", "readwrite");
+    const store = tx.objectStore("seleccionados");
+    const req = store.delete(Number(id));
+    req.onsuccess = () => {
+      resolve();
+      db.close();
+    };
+    req.onerror = (err) => {
+      reject(err);
+      db.close();
+    };
+  });
+}
