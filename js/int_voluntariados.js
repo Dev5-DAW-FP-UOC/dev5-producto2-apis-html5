@@ -157,7 +157,10 @@ async function handleListClick(e) {
 
 // ---------- Carga inicial + seed opcional desde datos.js ----------
 async function loadFromDB() {
-  state.vols = await listarVoluntariados();
+  state.vols = (await listarVoluntariados()).map(v => ({
+    ...v,
+    creadoPor: v.creadoPor || v.autor || "Anónimo" // <- usa autor si no existe creadoPor
+  }));
 }
 
 // ---------- Canvas ----------

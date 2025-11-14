@@ -23,7 +23,10 @@ export async function inicializarDatos() {
         const txAdd = db.transaction("voluntariados", "readwrite");
         const storeAdd = txAdd.objectStore("voluntariados");
         for (const v of datos.voluntariados) {
-          storeAdd.add(v);
+          storeAdd.add({
+          ...v,
+          creadoPor: v.creadoPor || v.autor || "Anónimo" // ← usa autor si creadoPor no existe
+         });
         }
         txAdd.oncomplete = () => {
           console.log("Voluntariados inicales cargados en IndexedDB");
@@ -228,8 +231,10 @@ export async function listarVoluntariados() {
     request.onsuccess = function (event) {
       resolve(request.result);
     };
-    request.onerror = function (event) {
-      reject(request.error);
+    request.onsuccess = function (event) {
+  // Garantiza que todos los registros tengan creadoPor
+  const vols = request.result.map(v => ({ ...v, creadoPor: v.creadoPor || "Anónimo" }));
+  resolve(vols)
     };
   });
 }
