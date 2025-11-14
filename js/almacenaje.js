@@ -42,6 +42,10 @@ export async function inicializarDatos() {
 export function getCategorias() {
   return datos.categorias || ["Todas"];
 }
+// Seleccion voluntariados propios
+export function getSeleccion(){
+  return datos.seleccion || ["Todos"];
+}
 
 // === CRUD y autenticación para la app de voluntariado ===
 

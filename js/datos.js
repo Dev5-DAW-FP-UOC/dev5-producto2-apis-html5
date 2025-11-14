@@ -9,6 +9,8 @@ export const datos = {
 
   categorias: ["Todas", "Idiomas", "Deportes", "Profesiones"],
 
+  seleccion: ["Todos", "Seleccionados"],
+
   voluntariados: [
     // PETICIONES
     {

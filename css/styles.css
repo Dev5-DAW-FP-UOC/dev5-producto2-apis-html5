@@ -90,6 +90,12 @@ body { background:#f8fafc; color:#111827; font-family: "Inter", system-ui, -appl
 .card-ld:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px var(--card-shadow); }
 .small-muted{ color: var(--ink-muted); }
 
+.card-selected-item {
+    min-width: 400px; 
+    flex-basis: auto; 
+    flex-grow: 0;
+}
+
 /* --- Colores por categoría (fallback + color-mix si está disponible) --- */
 /* Fallbacks (si el navegador NO soporta color-mix) */
 .cat-Idiomas{    border-color: var(--tint-idiomas-bd);  background: var(--tint-idiomas-bg); }
@@ -137,9 +143,8 @@ body { background:#f8fafc; color:#111827; font-family: "Inter", system-ui, -appl
 #drop-zone {
     padding: 1.5rem;
     transition: background-color 0.2s, border-color 0.2s;
-    min-height: 150px;
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
     justify-content: center;
 }
 

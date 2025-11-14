@@ -1,7 +1,7 @@
 // js/volunteers.js
 // Persistencia con IndexedDB + gráfico Canvas + UI
 
-import { listarUsuarios, altaVoluntariado, borrarVoluntariado, listarVoluntariados, getActiveUser } from "./almacenaje.js";
+import { listarUsuarios, altaVoluntariado, borrarVoluntariado, listarVoluntariados, getActiveUser, borrarSeleccionados } from "./almacenaje.js";
 
 const $ = (s, ctx = document) => ctx.querySelector(s);
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -141,6 +141,15 @@ async function handleListClick(e) {
 
   const id = Number(idStr); // id numérico (autoIncrement)
   await borrarVoluntariado(id);
+
+  //Si el voluntariado estaba seleccionado tambien deberá borrarse de la tabla de selección
+  try {
+    await borrarSeleccionados(id); 
+  } catch (err) {
+    //Como es probable que el voluntariado no estuviese seleccionado saltará el error
+    console.log("No fue necesario borrar de seleccionados o la clave no existía.");
+  }
+
   await loadFromDB();
   drawList();
 }

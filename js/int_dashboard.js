@@ -1,10 +1,11 @@
 // js/dashboard.js
 
-import { inicializarDatos, listarVoluntariados, getActiveUser, getCategorias, listarSeleccionados, guardarSeleccionados, borrarSeleccionados } from "./almacenaje.js";
+import { inicializarDatos, listarVoluntariados, getActiveUser, getCategorias, listarSeleccionados, guardarSeleccionados, borrarSeleccionados, getSeleccion } from "./almacenaje.js";
 
 // Estado del dashboard
 const STATE = {
   categoria: "Todas",
+  filtroSeleccion: "Todos",
   query: "",
   page: 1,
   perPage: 6,
@@ -59,18 +60,34 @@ function categoryClass(cat) {
 // Dibuja la estructura base
 function renderLayout(container) {
   const categorias = getCategorias();
+  const filtroSeleccion = getSeleccion();
   container.innerHTML = `
     <section class="mb-3">
       <input id="q" class="form-control form-control-lg" placeholder="Buscar por título, texto..." />
     </section>
 
-    <section class="mb-3">
-      <div id="tabs" class="d-flex flex-wrap gap-2">
+    <section class="mb-3 d-flex justify-content-between align-items-center">
+      <div id="tabs" class="d-flex flex-row flex-wrap gap-2">
         ${(categorias || ["Todas", "Idiomas", "Deportes", "Profesiones"])
           .map(
             (c) => `
               <button
                 class="tab-pill tab-${c} ${c === STATE.categoria ? "active" : ""}"
+                data-cat="${c}"
+                type="button"
+              >
+                ${c}
+              </button>
+            `
+          )
+          .join("")}
+      </div>
+      <div id="filtro-seleccion" class="d-flex flex-row justify-content-end">
+          ${(filtroSeleccion || ["Todos", "Seleccionados"])
+          .map(
+            (c) => `
+              <button
+                class="tab-pill tab-${c} ${c === STATE.filtroSeleccion ? "active" : ""}"
                 data-cat="${c}"
                 type="button"
               >
@@ -89,9 +106,9 @@ function renderLayout(container) {
       </nav>
     </section>
 
-    <section class="mt-5">
+    <section id="drop-zone-section" class="mt-5">
       <h3 class="h4 mb-3"> Selección de Voluntariados </h3>
-      <div id="drop-zone" class="border border-2 border-primary-subtle rounded-4">
+      <div id="drop-zone" class="d-flex d-wrap border border-2 border-primary-subtle rounded-4 p-3 gap-2">
           <p id="drop-zone-placeholder" class="text-center">Arrastra los voluntariados que quieras seleccionar.</p>
       </div>
     </section>
@@ -162,6 +179,9 @@ function buildPager(page, pages) {
 function paintActiveTab() {
   document.querySelectorAll("#tabs .tab-pill").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.cat === STATE.categoria);
+  })
+  document.querySelectorAll("#filtro-seleccion .tab-pill").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.cat === STATE.filtroSeleccion);
   });
 }
 
@@ -170,16 +190,29 @@ function draw() {
   const grid = $("#grid");
   const pager = $("#pager");
 
-  const voluntariadosNoSeleccionados = STATE.voluntariados.filter((v) => !STATE.seleccionados.includes(v.id));
+  let listaBase;
 
-  const filtered = applyFilters(voluntariadosNoSeleccionados || []);
+ if (STATE.filtroSeleccion !== "Todos") {
+      // Si no está seleccionado Todos nos quedamos solo con los voluntariados de seleccionados
+      listaBase = STATE.seleccionados
+      .map(id => STATE.voluntariados.find(v => v.id === id))
+      .filter(v => v); // Filtramos para eliminar nulos o undefined si el ID no se encuentra.
+    
+  } else {
+    // Si es "Todos", la lista base es la de Voluntariados que NO están seleccionados (el comportamiento original).
+    listaBase = STATE.voluntariados.filter((v) => !STATE.seleccionados.includes(v.id));
+  }
+  
+  const filtered = applyFilters(listaBase || []);
   const { items, page, pages } = paginate(filtered, STATE.page, STATE.perPage);
 
   grid.innerHTML =
     items.map(cardHTML).join("") ||
     `
     <div class="col">
-      <div class="text-center text-secondary p-5 border rounded">No hay resultados.</div>
+    </div>
+    <div class="col">
+      <div class="text-center text-secondary p-5 rounded">No hay resultados.</div>
     </div>
   `;
 
@@ -198,8 +231,17 @@ function draw() {
 
 // Función para pintar las tarjetas en la zona de soltar
 function renderSeleccionados() {
+  const dropZoneSection = $("#drop-zone-section");
   const dropZone = $("#drop-zone");
   const placeholder = $("#drop-zone-placeholder");
+
+  //Si filtramos solo los seleccionados escondemos el "Selección de Voluntariados" 
+  if (STATE.filtroSeleccion !== "Todos") {
+    dropZoneSection.style.display = 'none';
+    return;
+  }
+  
+  dropZoneSection.style.display = 'block';
   
   // Limpia solo las tarjetas seleccionadas anteriores, no el placeholder
   dropZone.querySelectorAll('.card-selected-item').forEach(card => card.remove());
@@ -219,7 +261,11 @@ function renderSeleccionados() {
     return `
       <div class="card card-selected-item card-ld ${catCls} p-2 shadow-sm" data-id-seleccionado="${id}">
         <div class="d-flex justify-content-between align-items-center">
-          <span class="fw-bold small px-2">${voluntariado.titulo}</span>
+          <div class="flex-grow-1">
+            <div class="fw-bold text-center small px-2">${voluntariado.titulo}</div>
+            <div class="text-center small px-2">${voluntariado.autor}</div>
+            <div class="text-center small px-2">${voluntariado.fecha}</div>
+          </div>
           <button type="button" class="btn-close small" data-id-quitar="${id}" aria-label="Quitar"></button>
         </div>
       </div>
@@ -270,6 +316,14 @@ async function initDashboard() {
     draw();
   });
 
+  $("#filtro-seleccion").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-cat]");
+    if (!btn) return;
+    STATE.filtroSeleccion = btn.dataset.cat;
+    STATE.page = 1;
+    draw();
+    renderSeleccionados();
+  });
     // Listeners de Drag & Drop
   addDragAndDropListeners();
 
