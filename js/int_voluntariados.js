@@ -127,6 +127,8 @@ async function handleSubmit(e) {
   await loadFromDB(); // refresca state.vols
   drawList();
 
+  document.dispatchEvent(new CustomEvent('voluntariadoChanged'));
+
   f.reset();
   const ff = $("#fecha");
   if (ff) ff.value = todayISO();
@@ -141,17 +143,16 @@ async function handleListClick(e) {
 
   const id = Number(idStr); // id numérico (autoIncrement)
   await borrarVoluntariado(id);
-
-  //Si el voluntariado estaba seleccionado tambien deberá borrarse de la tabla de selección
-  try {
+    try {
     await borrarSeleccionados(id); 
   } catch (err) {
     //Como es probable que el voluntariado no estuviese seleccionado saltará el error
     console.log("No fue necesario borrar de seleccionados o la clave no existía.");
   }
-
   await loadFromDB();
   drawList();
+
+  document.dispatchEvent(new CustomEvent('voluntariadoChanged'));
 }
 
 // ---------- Carga inicial + seed opcional desde datos.js ----------
@@ -184,62 +185,65 @@ function drawCanvasChart() {
   canvas.height = Math.round(cssH * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  // Datos
-  const c = countByType(state.vols || []);
-  const values = [c.oferta, c.peticion];
+  // Agrupar por usuario
+  const userMap = {};
+  (state.vols || []).forEach(v => {
+    const user = v.creadoPor || "Anónimo";
+    if (!userMap[user]) userMap[user] = { oferta: 0, peticion: 0 };
+    const t = String(v.type || v.tipo || "oferta").toLowerCase();
+    if (t.includes("pet")) userMap[user].peticion++;
+    else userMap[user].oferta++;
+  });
 
-  // Usuario activo (solo nombre)
-  const active = getActiveUser?.();
-  const userName = active?.nombre ? active.nombre : "Usuario";
+  const users = Object.keys(userMap);
+  const values = users.map(u => [userMap[u].oferta, userMap[u].peticion]);
 
-  // Layout compacto
-  const padX = 20,
-    padTop = 18,
-    padBottom = 28;
-  const W = cssW,
-    H = cssH;
+  // Layout
+  const padX = 20, padTop = 18, padBottom = 28;
+  const W = cssW, H = cssH;
   ctx.clearRect(0, 0, W, H);
   ctx.font = "11px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   ctx.textBaseline = "middle";
 
-  const max = Math.max(1, ...values);
-  const baseY = H - padBottom;
-  const scale = (H - padTop - padBottom) / max;
-
-  const gap = 16; // separación entre barras
-  const barW = Math.min(56, (W - padX * 2 - gap) / 2);
-  const totalBarsWidth = barW * 2 + gap;
-  const startX = padX + (W - padX * 2 - totalBarsWidth) / 2;
+  // Escala vertical
+  const maxVal = Math.max(1, ...values.flat());
+  const scale = (H - padTop - padBottom) / maxVal;
+  const gap = 16;
+  const barW = Math.min(40, (W - padX * 2 - gap * users.length) / (users.length * 2));
 
   // Eje X
   ctx.strokeStyle = "#aaa";
   ctx.beginPath();
-  ctx.moveTo(padX, baseY + 0.5);
-  ctx.lineTo(W - padX, baseY + 0.5);
+  ctx.moveTo(padX, H - padBottom + 0.5);
+  ctx.lineTo(W - padX, H - padBottom + 0.5);
   ctx.stroke();
 
-  // Dibujar barras (mismo usuario en ambas)
-  const labels = [userName, userName];
-  labels.forEach((label, i) => {
-    const x = startX + i * (barW + gap);
-    const val = values[i];
-    const h = Math.max(0, val * scale);
-    const y = baseY - h;
+  users.forEach((user, i) => {
+    const [oferta, peticion] = values[i];
+    const x0 = padX + i * (2 * barW + gap);
 
-    ctx.fillStyle = i === 0 ? "#0d6efd" : "#ffc107";
-    ctx.fillRect(x, y, barW, h);
+    // Oferta (azul)
+    const h1 = oferta * scale;
+    ctx.fillStyle = "#0d6efd";
+    ctx.fillRect(x0, H - padBottom - h1, barW, h1);
 
-    // Valor arriba
-    const labelY = Math.max(padTop + 6, y - 8);
+    // Petición (amarilla)
+    const h2 = peticion * scale;
+    ctx.fillStyle = "#ffc107";
+    ctx.fillRect(x0 + barW, H - padBottom - h2, barW, h2);
+
+    // Valores arriba
     ctx.fillStyle = "#111";
     ctx.textAlign = "center";
-    ctx.fillText(String(val), x + barW / 2, labelY);
+    ctx.fillText(String(oferta), x0 + barW / 2, H - padBottom - h1 - 10);
+    ctx.fillText(String(peticion), x0 + barW + barW / 2, H - padBottom - h2 - 10);
 
-    // Nombre debajo
+    // Nombre abajo
     ctx.fillStyle = "#555";
-    ctx.fillText(label, x + barW / 2, baseY + 12);
+    ctx.fillText(user, x0 + barW, H - padBottom + 12);
   });
 }
+
 
 // ---------- Boot ----------
 document.addEventListener("DOMContentLoaded", async () => {
